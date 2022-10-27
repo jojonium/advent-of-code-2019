@@ -17,7 +17,6 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
-    CHANGELOG.md
 
 source-repository head
   type: git
@@ -27,7 +26,6 @@ library
   exposed-modules:
       Day01
       FsHelpers
-      Lib
   other-modules:
       Paths_aoc2019
   hs-source-dirs:
