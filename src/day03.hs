@@ -1,6 +1,6 @@
 import System.Environment
 import FsHelpers
-import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 fileNameFromArgs :: [String] -> String
 fileNameFromArgs [] = "../inputs/day03.txt"
@@ -11,25 +11,28 @@ main = do
   args <- getArgs
   ls <- fileToLines $ fileNameFromArgs args
   let instructions = map (split (==',')) ls
-  putStrLn $ "Part 1: " ++ show (part1 instructions)
+  let (p1, p2) = solve instructions
+  putStrLn $ "Part 1: " ++ show p1
+  putStrLn $ "Part 2: " ++ show p2
 
-part1 :: [[String]] -> Int
-part1 []    = error "part1: invalid input"
-part1 [[]]  = error "part1: invalid input"
-part1 [_:_] = error "part1: invalid input"
-part1 (wire1:wire2:_) = minimum (Set.map (\ (x, y) -> abs x + abs y) sect) 
-  where sect = occupiedPoints wire1 `Set.intersection` occupiedPoints wire2
+solve :: [[String]] -> (Int, Int)
+solve []    = error "solve: invalid input"
+solve [[]]  = error "solve: invalid input"
+solve [_:_] = error "solve: invalid input"
+solve (wire1:wire2:_) = (Map.foldrWithKey mm maxBound sect, Map.foldr min maxBound sect)
+  where sect = Map.intersectionWith (+) (occupiedPoints wire1) (occupiedPoints wire2)
+        mm (x, y) _ = min (abs x + abs y) -- manhattanMin
+        occupiedPoints inst = points
+          where (_, _, _, points) = foldl move (0, 0, 0, Map.empty) inst
 
-occupiedPoints :: [String] -> Set.Set (Int, Int)
-occupiedPoints inst = points
-  where (_, _, points) = foldl move (0, 0, Set.empty) inst
-
-move :: (Int, Int, Set.Set (Int, Int)) -> String -> (Int, Int, Set.Set (Int, Int))
-move (x, y, _) [] = (x, y, Set.empty)
-move (x, y, points) (i:is)
-  | i == 'U' = (x, y + amount, points `Set.union` Set.fromList [(x, y + y1) | y1 <- [1 .. amount]])
-  | i == 'D' = (x, y - amount, points `Set.union` Set.fromList [(x, y - y1) | y1 <- [1 .. amount]])
-  | i == 'R' = (x + amount, y, points `Set.union` Set.fromList [(x + x1, y) | x1 <- [1 .. amount]])
-  | i == 'L' = (x - amount, y, points `Set.union` Set.fromList [(x - x1, y) | x1 <- [1 .. amount]])
-  | otherwise = error "move: invalid input"
-  where amount = read is :: Int
+move :: (Int, Int, Int, Map.Map (Int, Int) Int) -> String -> (Int, Int, Int, Map.Map (Int, Int) Int)
+move (x, y, steps, _) [] = (x, y, steps, Map.empty)
+move (x, y, steps, points) (i:is) = (nx, ny, steps + amount, insertAll points lst)
+  where amount        = read is :: Int
+        insertAll     = foldr (uncurry (Map.insertWith min))
+        (nx, ny, lst) = case i of 
+          'U' -> (x, y + amount, [((x, y + y1), steps + y1) | y1 <- [1..amount]])
+          'D' -> (x, y - amount, [((x, y - y1), steps + y1) | y1 <- [1..amount]])
+          'R' -> (x + amount, y, [((x + x1, y), steps + x1) | x1 <- [1..amount]])
+          'L' -> (x - amount, y, [((x - x1, y), steps + x1) | x1 <- [1..amount]])
+          _   -> error $ "Invalid move " ++ (i:is)
