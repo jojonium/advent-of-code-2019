@@ -22,8 +22,6 @@ replace index newVal xs = as ++ newVal : tail bs
 
 -- (remaining, input, output, full) -> (remaining, input, output, full)
 run :: ([Int], [Int], [Int], [Int]) -> ([Int], [Int], [Int], [Int])
-run ([], input, output, full) = ([], input, output, full)
-run ([_], input, output, full) = ([], input, output, full)
 run (99:_, input, output, full) = run ([], input, output, full) -- halt
 run (3:p1:remaining, input, output, full)  -- input
   = let delta = length full - length remaining
@@ -33,8 +31,6 @@ run (4:p1:remaining, input, output, full)  -- output position mode
   = run (remaining, input, output ++ [full!!p1], full)
 run (104:p1:remaining, input, output, full) -- output immediate mode
   = run (remaining, input, output ++ [p1], full)
-run ([_, _], input, output, full) = ([], input, output, full)
-run ([_, _, _], input, output, full) = ([], input, output, full)
 run (p0:p1:p2:p3:remaining, input, output, full) = run (nr, input, output, nf)
   where a1 = if p0 `div` 100  `mod` 10 == 0 then full!!p1 else p1
         a2 = if p0 `div` 1000 `mod` 10 == 0 then full!!p2 else p2
@@ -47,6 +43,7 @@ run (p0:p1:p2:p3:remaining, input, output, full) = run (nr, input, output, nf)
           | p0 `mod` 100 == 8 = equalsInstruction
           | otherwise = error $ "Illegal first instruction: " ++ show p0
         (nr, nf) = instruction (a1, a2, p3, remaining, full)
+run (_, input, output, full) = ([], input, output, full) -- failure to match halts
 
 addInstruction :: Instruction
 addInstruction (a1, a2, a3, remaining, full) = 
