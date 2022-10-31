@@ -12,7 +12,7 @@ main = do
   ls <- fileToLines $ fileNameFromArgs args
   let nums = map (read :: String -> Int) (split (==',') (head ls))
   putStrLn $ "Part 1: " ++ show (part1 nums)
-  --putStrLn $ "Part 2: " ++ show (part2 nums)
+  putStrLn $ "Part 2: " ++ show (part2 nums)
 
 replace :: Int -> a -> [a] -> [a]
 replace index newVal xs = as ++ newVal : tail bs
@@ -98,10 +98,17 @@ part1 instructions = snd $ foldr f ("", 0) combinations
         f combo pair = if snd newPair > snd pair then newPair else pair
           where newPair = thrusterOutput instructions combo
 
+part2 :: [Int] -> Int
+part2 instructions = snd $ foldr f ("", 0) combinations
+  where combinations = [(a,b,c,d,e) | [a, b, c, d, e] <- permutations [5..9]]
+        f combo pair = if snd newPair > snd pair then newPair else pair
+          where newPair = thrusterOutput instructions combo
+
 thrusterOutput :: [Int] -> (Int, Int, Int, Int, Int) -> (String, Int)
-thrusterOutput instructions (a, b, c, d, e) = (str, head $ solve instructions [e, head dOutput])
-  where dOutput = solve instructions [d, head cOutput]
-        cOutput = solve instructions [c, head bOutput]
-        bOutput = solve instructions [b, head aOutput]
-        aOutput = solve instructions [a, 0]
+thrusterOutput instructions (a, b, c, d, e) = (str, last eOutput)
+  where eOutput = solve instructions $ e : dOutput
+        dOutput = solve instructions $ d : cOutput
+        cOutput = solve instructions $ c : bOutput
+        bOutput = solve instructions $ b : aOutput
+        aOutput = solve instructions $ a : 0 : eOutput
         str = show a ++ show b ++ show c ++ show d ++ show e
