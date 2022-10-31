@@ -1,6 +1,6 @@
 import System.Environment
 import FsHelpers
-import GHC.IO.Handle (NewlineMode(outputNL))
+import Debug.Trace (trace)
 
 fileNameFromArgs :: [String] -> String
 fileNameFromArgs [] = "inputs/day05.txt"
@@ -19,13 +19,13 @@ replace index newVal xs = as ++ newVal : tail bs
   where (as,bs) = splitAt index xs
 
 run :: ([Int], [Int], [Int], [Int]) -> ([Int], [Int], [Int], [Int])
-run ([], _, _, full) = ([], [], [], full)
-run ([_], _, _, full) = ([], [], [], full)
+run ([], input, output, full) = ([], input, output, full)
+run ([_], input, output, full) = ([], input, output, full)
 run (99:_, input, output, full) = run ([], input, output, full) -- halt
 run (3:p1:remaining, input, output, full)  -- input
   = let delta = length full - length remaining
-        newRemaining = if p1 > delta then replace (p1 - delta) (head input) remaining else remaining
-    in run (newRemaining, drop 1 input, output, replace p1 (head input) full)
+        newFull = replace p1 (head input) full
+    in run (drop delta newFull, drop 1 input, output, newFull)
 run (4:p1:remaining, input, output, full)  -- output position mode
   = run (remaining, input, output ++ [full!!p1], full)
 run (104:p1:remaining, input, output, full) -- output immediate mode
@@ -48,18 +48,18 @@ run (p0:p1:p2:p3:remaining, input, output, full)
 addInstruction :: (Int, Int, Int, [Int], [Int]) -> ([Int], [Int])
 addInstruction (a1, a2, a3, remaining, full) = 
   let delta = length full - length remaining
-      newRemaining = if a3 > delta then replace (a3 - delta) (a1 + a2) remaining else remaining
-  in (newRemaining, replace a3 (a1 + a2) full)
+      newFull = replace a3 (a1 + a2) full
+  in (drop delta newFull, newFull) 
 
 multInstruction :: (Int, Int, Int, [Int], [Int]) -> ([Int], [Int])
 multInstruction (a1, a2, a3, remaining, full) = 
   let delta = length full - length remaining
-      newRemaining = if a3 > delta then replace (a3 - delta) (a1 * a2) remaining else remaining
-  in (newRemaining, replace a3 (a1 * a2) full)
+      newFull = replace a3 (a1 * a2) full
+  in (drop delta newFull, newFull) 
 
 solve :: [Int] -> [Int] -> ([Int], [Int])
 solve input memory = (output, afterMemory)
   where (_, _, output, afterMemory) = run (memory, input, [], memory)
 
-part1 :: [Int] -> ([Int], [Int])
-part1 = solve [1]
+part1 :: [Int] -> Int
+part1 nums = last $ fst $ solve [1] nums
