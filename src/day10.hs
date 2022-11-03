@@ -1,9 +1,9 @@
 import System.Environment
 import FsHelpers
 import qualified Data.Set as Set
-import Debug.Trace (trace)
 import Data.Bifunctor (second)
 import Data.Foldable (maximumBy)
+import Data.Ratio
 
 fileNameFromArgs :: [String] -> String
 fileNameFromArgs [] = "inputs/day10.txt"
@@ -14,10 +14,6 @@ main = do
   args <- getArgs
   asteroids <- fileToLines $ fileNameFromArgs args
   let set = toSet asteroids
-  -- print $ getVisible (9, 9) set
-  -- print $ countVisible (4, 4) set
-  print $ solveAll set
-  -- print $ getVisible (1, 0) set
   let (x, y, z) = solve set
   putStrLn $ "Part 1: " ++ show z ++ " at " ++ show (x, y)
 
@@ -26,9 +22,6 @@ solve set = maximumBy (\(_, _, a) (_, _, b) -> a `compare` b) $ solveAll set
 
 solveAll :: Set.Set (Int, Int) -> Set.Set (Int, Int, Int)
 solveAll set = Set.map (\p@(x, y) -> (x, y, countVisible p set)) set
-
-part1 :: Set.Set (Int, Int) -> Int
-part1 set = maximum $ Set.map (`countVisible` set) set
 
 toSet :: [[Char]] -> Set.Set (Int, Int)
 toSet asteroids = foldr step Set.empty indexes
@@ -52,13 +45,12 @@ pointsOnLine (fromX, fromY) (toX, toY)
   | otherwise = trys
       where startX   = min fromX toX
             endX     = max fromX toX
-            slope    = fromIntegral (toY - fromY) / fromIntegral (toX - fromX) :: Double
+            slope    = fromIntegral (toY - fromY) % fromIntegral (toX - fromX) :: Ratio Integer
             b        = fromIntegral fromY - (slope * fromIntegral fromX)
-            -- lineEq x = trace ("y = " ++ show slope ++ "x + " ++ show b) (slope * x + b)
             lineEq x = slope * x + b
             doubleP  = [(x, lineEq (fromIntegral x)) | x <- trim2 [startX..endX]]
-            trys    = map (Data.Bifunctor.second (floor :: Double -> Int)) $ 
-                      filter (\(_, y) -> y == fromInteger (floor y)) doubleP
+            filtered = filter (\(_, y) -> denominator y == 1) doubleP
+            trys    = map (Data.Bifunctor.second floor) filtered
 
 visibleFrom :: (Int, Int) -> (Int, Int) -> Set.Set (Int, Int) -> Bool
 visibleFrom src dest set
