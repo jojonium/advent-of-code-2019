@@ -3,6 +3,7 @@ import FsHelpers
 import qualified Data.Set as Set
 import Data.Bifunctor (second)
 import Data.Foldable (maximumBy)
+import Data.List (sortBy)
 import Data.Ratio
 
 fileNameFromArgs :: [String] -> String
@@ -14,14 +15,19 @@ main = do
   args <- getArgs
   asteroids <- fileToLines $ fileNameFromArgs args
   let set = toSet asteroids
-  let (x, y, z) = solve set
-  putStrLn $ "Part 1: " ++ show z ++ " at " ++ show (x, y)
+  let ((x, y), z) = solve set
+  putStrLn $ "Part 1: " ++ show z
+  let visible = getVisible (x, y) set
+  let thetas = map (\point -> (point, cartesianToTheta (x, y) point)) visible
+  -- don't need multiple rotations because there are more than 200 already visible
+  let ((p2x, p2y), _) = sortBy (\a b -> snd a `compare` snd b) thetas !! 199
+  putStrLn $ "Part 2: " ++ show (p2x * 100 + p2y)
 
-solve :: Set.Set (Int, Int) -> (Int, Int, Int)
-solve set = maximumBy (\(_, _, a) (_, _, b) -> a `compare` b) $ solveAll set
+solve :: Set.Set (Int, Int) -> ((Int, Int), Int)
+solve set = maximumBy (\a b -> snd a `compare` snd b) $ solveAll set
 
-solveAll :: Set.Set (Int, Int) -> Set.Set (Int, Int, Int)
-solveAll set = Set.map (\p@(x, y) -> (x, y, countVisible p set)) set
+solveAll :: Set.Set (Int, Int) -> Set.Set ((Int, Int), Int)
+solveAll set = Set.map (\p@(x, y) -> ((x, y), countVisible p set)) set
 
 toSet :: [[Char]] -> Set.Set (Int, Int)
 toSet asteroids = foldr step Set.empty indexes
@@ -69,3 +75,11 @@ getVisible (x, y) set
   | not $ Set.member (x, y) set = []
   | otherwise = foldr step [] set
     where step other acc = if visibleFrom (x, y) other set then other:acc else acc
+
+-- first argument is the origin
+cartesianToTheta :: (Int, Int) -> (Int, Int) -> Double
+cartesianToTheta (x0, y0) (x1, y1) = if degrees < 0 then degrees + 360 else degrees
+  where x = fromIntegral $ x1 - x0
+        y = fromIntegral $ y1 - y0
+        degrees = atan2 y x * (180 / pi) + 90
+
