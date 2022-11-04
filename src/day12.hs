@@ -1,7 +1,5 @@
 import System.Environment
 import FsHelpers
-import Data.List (intercalate)
-import qualified Data.Map as Map
 
 fileNameFromArgs :: [String] -> String
 fileNameFromArgs [] = "inputs/day12.txt"
@@ -20,7 +18,7 @@ main = do
   ls <- fileToLines $ fileNameFromArgs args
   let moons = map parseLine ls
   putStrLn $ "Part 1: " ++ show (sum (map energy (iterate step moons !! 1000)))
-  -- putStrLn $ "Part 2: " ++ show (part2 moons)
+  putStrLn $ "Part 2: " ++ show (part2 moons)
 
 parseLine :: String -> Moon
 parseLine str = Moon (read pxs, read pys, read pzs) (0, 0, 0)
@@ -59,3 +57,29 @@ energy m = potential * kinetic
         potential    = abs px + abs py + abs pz
         kinetic      = abs vx + abs vy + abs vz
 
+part2 :: [Moon] -> Integer
+part2 moons = lcm xc (lcm yc zc)
+  where (xc, yc, zc) = cycles moons
+
+moonX :: Moon -> (Integer, Integer)
+moonX (Moon {mPos=(px, _, _), mVel=(vx, _, _)}) = (px, vx)
+moonY :: Moon -> (Integer, Integer)
+moonY (Moon {mPos=(_, py, _), mVel=(_, vy, _)}) = (py, vy)
+moonZ :: Moon -> (Integer, Integer)
+moonZ (Moon {mPos=(_, _, pz), mVel=(_, _, vz)}) = (pz, vz)
+
+cycles :: [Moon] -> (Integer, Integer, Integer)
+cycles moons = try (step moons) (-1, -1, -1) 1
+  where startXs = map moonX moons
+        startYs = map moonY moons
+        startZs = map moonZ moons
+        try :: [Moon] -> (Integer, Integer, Integer) -> Integer -> (Integer, Integer, Integer)
+        try next (xr, yr, zr) n = if xr' /= -1 && yr' /= -1 && zr' /= -1
+                                  then (xr', yr', zr')
+                                  else try (step next) (xr', yr', zr') (n + 1)
+          where xr' = if xr == -1 && equalsStartX next then n else xr
+                yr' = if yr == -1 && equalsStartY next then n else yr
+                zr' = if zr == -1 && equalsStartZ next then n else zr
+        equalsStartX ms = map moonX ms == startXs
+        equalsStartY ms = map moonY ms == startYs
+        equalsStartZ ms = map moonZ ms == startZs
