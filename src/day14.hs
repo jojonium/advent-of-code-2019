@@ -19,6 +19,7 @@ main = do
   ls <- fileToLines $ fileNameFromArgs args
   let parsed = parseLines ls
   putStrLn $ "Part 1: " ++ show (solve parsed (Map.fromList [("FUEL", 1)]) Map.! "ORE")
+  putStrLn $ "Part 2: " ++ show (binarySearch 100000 10000000000 parsed)
 
 elements :: [(Integer, String)] -> String -> [(Integer, String)]
 elements lst "" = lst
@@ -46,3 +47,12 @@ solve recipes required = if Map.null nonOreRequired then required else solve rec
         addRequirement bs req (ata, nta) = Map.insert nta newAmt' req
           where newAmt  = Map.findWithDefault 0 nta required
                 newAmt' = newAmt + (bs * ata)
+
+binarySearch :: Integer -> Integer -> Recipes -> Integer
+binarySearch lower upper recipes
+  | lower == upper    = lower
+  | ore > oneTrillion = binarySearch lower (middle - 1) recipes
+  | otherwise         = binarySearch middle upper recipes
+  where oneTrillion = 1000000000000
+        middle = ceiling $ (upper + lower) % 2
+        ore = solve recipes (Map.fromList [("FUEL", middle)]) Map.! "ORE"
