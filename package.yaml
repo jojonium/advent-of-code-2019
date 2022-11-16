@@ -24,6 +24,7 @@ dependencies:
 - unordered-containers
 - regex-tdfa
 - astar
+- search-algorithms
 
 ghc-options:
 - -Wall
