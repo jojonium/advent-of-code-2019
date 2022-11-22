@@ -4,7 +4,7 @@ import qualified Data.Map as Map
 import qualified Data.HashSet as HS
 import Data.Char (isLower, toUpper, isUpper)
 import Data.List (foldl', minimumBy, maximumBy, intercalate, permutations)
-import Data.Graph.AStar (aStar)
+import Algorithm.Search (aStar)
 import Data.Maybe (isJust, catMaybes)
 import Debug.Trace (trace)
 
@@ -39,7 +39,7 @@ parse ls = foldl' folder (Map.empty, Map.empty, Map.empty, (0, 0)) coords
                 chart'    = Map.insert (x, y) t' chart
                 keyLocs'  = if isLower t then Map.insert t (x, y) keyLocs else keyLocs
 
-pathTo :: Chart -> Coord -> Coord -> Maybe [Coord]
+pathTo :: Chart -> Coord -> Coord -> Maybe (Int, [Coord])
 pathTo chart from (gx, gy) = aStar graphFunc (\_ _ -> 1) heuristic (==(gx, gy)) from
   where heuristic (x, y) = (abs gx - x) + (abs gy - y)
         graphFunc (x, y) = foldl' isOpen HS.empty adjacent
@@ -53,11 +53,11 @@ try2 :: Chart -> Locs -> Locs -> Coord -> Int -> Int -> Int
 try2 chart doorLocs keyLocs cur best steps
   | Map.null keyLocs  = steps
   | steps >= best     = maxBound
-  | otherwise         = Map.foldlWithKey' folder maxBound options'
+  | otherwise         = Map.foldlWithKey' f maxBound options'
   where options               = Map.map (pathTo chart cur) keyLocs
         options'              = Map.filter isJust options
-        folder acc _ Nothing  = acc
-        folder acc k (Just p) = if length p + steps >= acc then acc else min acc (tryNext k p acc)
+        f acc _ Nothing       = acc
+        f acc k (Just (n, p)) = if n + steps >= acc then acc else min acc (tryNext k p acc)
         tryNext k path acc    = try2 chart'' doorLocs keyLocs' c acc (steps + length path)
           where c        = last path
                 keyLocs' = Map.delete k keyLocs
