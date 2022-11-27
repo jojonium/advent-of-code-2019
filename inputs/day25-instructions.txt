@@ -25,12 +25,12 @@ north
 take astrolabe
 east
 take hologram
+east
+take klein bottle
+west
 south
 west
 drop whirled peas
 drop ornament
 drop dark matter
 drop candy cane
-drop tambourine
-drop astrolabe
-drop hologram
