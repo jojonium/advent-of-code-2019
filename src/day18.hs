@@ -5,8 +5,7 @@ import qualified Data.HashSet as HS
 import Data.Char (isLower, toUpper, isUpper)
 import Data.List (minimumBy, maximumBy, intercalate)
 import Algorithm.Search (aStar, dijkstra)
-import Data.Maybe (isJust, mapMaybe, fromJust)
-import Debug.Trace (trace)
+import Data.Maybe (mapMaybe)
 
 fileNameFromArgs :: [String] -> String
 fileNameFromArgs [] = "inputs/day18.txt"
@@ -16,7 +15,7 @@ type Coord = (Int, Int)
 type Chart = Map.Map Coord Char
 type Locs = Map.Map Char Coord
 data State = State
-  { _sxy    :: [Coord] -- robot positions
+  { _srb    :: [Coord] -- robot positions
   , _sc     :: Chart
   , _skeys  :: Locs
   , _sdoors :: Locs
@@ -28,14 +27,12 @@ main = do
   args <- getArgs
   ls   <- fileToLines $ fileNameFromArgs args
   let initialState = parse ls
-  putStrLn (prettyPrint initialState)
-  --putStrLn $ "Part 1 (This will take a long time): " ++ show (solve initialState)
+  putStrLn $ "Part 1 (This will take a long time): " ++ show (solve initialState)
   let p2Init = toPart2State initialState
-  putStrLn (prettyPrint p2Init)
   putStrLn $ "Part 2 (This will take a long time): " ++ show (solve p2Init)
 
 neighbors :: State -> [State]
-neighbors (State robots chart keys doors _) = trace (show (Map.size keys)) states
+neighbors (State robots chart keys doors _) = states
   where paths  = concatMap (\robot -> mapMaybe (pathTo chart robot) (Map.elems keys)) robots
         states = map toState paths
         toState (price, start, ps) = State robots' chart'' keys' doors price
@@ -45,16 +42,13 @@ neighbors (State robots chart keys doors _) = trace (show (Map.size keys)) state
                 keys'   = Map.delete k keys
                 chart'  = Map.insert end '.' chart  -- key space is empty now
                 chart'' = if Map.member (toUpper k) doors  -- open corresponding door if it exists
-                           then Map.insert (doors Map.! toUpper k) '.' chart'
-                           else chart'
-
-cost :: State -> State -> Int
-cost _ (State _ _ _ _ lastCost) = lastCost
+                          then Map.insert (doors Map.! toUpper k) '.' chart'
+                          else chart'
 
 solve :: State -> Maybe Int
-solve s = case dijkstra neighbors cost (Map.null . _skeys) s of
+solve s = case dijkstra neighbors (\_ s2 -> _last s2) (Map.null . _skeys) s of
     Nothing     -> Nothing
-    Just (x, path) -> Just x
+    Just (x, _) -> Just x
 
 pathTo :: Chart -> Coord -> Coord -> Maybe (Int, Coord, [Coord])
 pathTo chart from (gx, gy) = case aStar graphFunc (\_ _ -> 1) h (==(gx, gy)) from of
@@ -93,16 +87,10 @@ parse ls = foldr folder (State [] Map.empty Map.empty Map.empty 0) coords
                 chart' = Map.insert (x, y) t' chart
                 keys'  = if isLower t then Map.insert t (x, y) keys else keys
 
-
 toPart2State :: State -> State
 toPart2State (State ir chart keys doors _) = State robots chart' keys doors 0
     where (x, y) = head ir
           robots = [(x - 1, y + 1), (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1)]
-          chart' = foldr (`Map.insert` '#') chart 
-            [ (x, y)
-            , (x - 1, y)
-            , (x + 1, y)
-            , (x, y - 1)
-            , (x, y + 1)
-            ]
+          newWalls = [(x, y) , (x - 1, y) , (x + 1, y) , (x, y - 1) , (x, y + 1)]
+          chart' = foldr (`Map.insert` '#') chart newWalls
 
